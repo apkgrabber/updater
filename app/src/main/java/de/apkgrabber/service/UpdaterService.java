@@ -5,6 +5,8 @@ package de.apkgrabber.service;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+
 
 import de.apkgrabber.R;
 import de.apkgrabber.adapter.UpdaterAdapter;
@@ -20,6 +22,7 @@ import de.apkgrabber.model.Update;
 import de.apkgrabber.updater.IUpdater;
 import de.apkgrabber.updater.UpdaterAPKMirrorAPI;
 import de.apkgrabber.updater.UpdaterAPKPure;
+import de.apkgrabber.updater.UpdaterAptoide;
 import de.apkgrabber.updater.UpdaterGooglePlay;
 import de.apkgrabber.updater.UpdaterNotification;
 import de.apkgrabber.updater.UpdaterOptions;
@@ -92,6 +95,12 @@ public class UpdaterService
                 "SelfUpdater", "", getBaseContext());
         NotificationHelper.createNotificationChannel(Constants.AutomaticUpdateNotificationChannelId,
                 "AutomaticInstaller", "", getBaseContext());
+
+		mNotification = new UpdaterNotification(getBaseContext(), 0);
+
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			startForeground(Constants.UpdaterNotificationId, mNotification.startUpdate());
+		}
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -108,6 +117,8 @@ public class UpdaterService
 				return new UpdaterAPKPure(context, app.getPname(), app.getVersion());
 			case "Uptodown":
 				return new UpdaterUptodown(context, app.getPname(), app.getVersion());
+			case "Aptoide":
+				return new UpdaterAptoide(context, app.getPname(), app.getVersion());
 			default:
 				return null;
 		}
@@ -135,7 +146,6 @@ public class UpdaterService
 				} else {
 					mBus.post(new UpdateProgressEvent(null));
 				}
-
 				mAppState.increaseUpdateProgress();
 				mNotification.increaseProgress(mUpdates.size());
 			}
@@ -181,7 +191,7 @@ public class UpdaterService
 			}
 
 			// Check if we have at least one update source
-			if (!options.useAPKMirror() && !options.useUptodown() && !options.useAPKPure() && !options.useGooglePlay()) {
+			if (!options.useAPKMirror() && !options.useUptodown() && !options.useAPKPure() && !options.useGooglePlay() && !options.useAptoide()) {
 				mBus.post(new UpdateStopEvent(getBaseContext().getString(R.string.update_no_sources)));
 				mMutex.unlock();
 				return;
@@ -189,7 +199,6 @@ public class UpdaterService
 
 			mAppState.clearUpdates();
 			mAppState.setUpdateProgress(0);
-			mNotification = new UpdaterNotification(getBaseContext(), 0);
 
 			// Retrieve installed apps
 			List<InstalledApp> installedApps = mInstalledAppUtil.getInstalledApps(getBaseContext());
@@ -268,6 +277,12 @@ public class UpdaterService
                     appCount++;
                     updateSource(executor, "APKPure", app, errors);
                 }
+
+                if (options.useAptoide()) {
+					appCount++;
+					updateSource(executor, "Aptoide", app, errors);
+				}
+
             }
 
             mAppState.setUpdateMax(appCount);

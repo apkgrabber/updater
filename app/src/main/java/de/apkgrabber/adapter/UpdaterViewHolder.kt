@@ -93,7 +93,14 @@ open class UpdaterViewHolder(view: View)
 			text,
 			u.installStatus.status == InstallStatus.STATUS_INSTALLING,
             {
-                if (text == mContext?.getString(R.string.action_play)) launchInstall(u) else launchBrowser(u)
+                if (text == mContext?.getString(R.string.action_play)) {
+					launchInstall(u)
+				} else if(text == mContext?.getString(R.string.action_aptoide)) {
+					val splits = u.url.split("/")
+					directDownload(u, splits.last())
+				} else {
+					launchBrowser(u)
+				}
             }
 		))
 	}
@@ -158,6 +165,10 @@ open class UpdaterViewHolder(view: View)
 		DownloadUtil.launchBrowser(mContext, u.url)
 	}
 
+	private fun directDownload(u : Update, name : String) {
+		DownloadUtil.downloadFile(mContext, u.url, "", name)
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	private fun getActionString(
@@ -169,6 +180,8 @@ open class UpdaterViewHolder(view: View)
 			return mContext?.getString(R.string.action_uptodown)!!
 		} else if (u.url.contains("apkpure.com")) {
 			return mContext?.getString(R.string.action_apkpure)!!
+		} else if (u.url.contains("aptoide.com")) {
+			return mContext?.getString(R.string.action_aptoide)!!
 		} else if (u.cookie != null) {
 			if (u.installStatus.status == InstallStatus.STATUS_INSTALL) {
 				return mContext?.getString(R.string.action_play)!!
